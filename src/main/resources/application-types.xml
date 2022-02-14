@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<types:mule xmlns:types="http://www.mulesoft.org/schema/mule/types">
+  <types:catalog>
+    <types:type name="GetFlightBycode" format="json">
+      <types:shape format="weave" example="examples/GetFlightBycode.json"><![CDATA[%dw 2.0
+
+type GetFlightBycode = {|
+  code: String, 
+  price: Number {"typeId": "double"}, 
+  departureDate: String, 
+  origin: String, 
+  destination: String, 
+  emptySeats: Number {"typeId": "int"}, 
+  planetype: String, 
+  planetotalSeats: Number {"typeId": "int"}
+|} {"example": "{\\\"code\\\":\\\"ER38sd\\\",\\\"price\\\":400.00,\\\"departureDate\\\":\\\"2016\\/03\\/20\\\",\\\"origin\\\":\\\"Mumbai\\\",\\\"destination\\\":\\\"Dubai\\\",\\\"emptySeats\\\":0,\\\"planetype\\\":\\\"Boeing 737\\\",\\\"planetotalSeats\\\":150}"}
+
+]]></types:shape>
+    </types:type>
+  </types:catalog>
+  <types:enrichment select="#1c5ad320-5910-4428-8d34-890114dd5df9">
+    <types:processor-declaration>
+      <types:output-event>
+        <types:message>
+          <types:payload type="GetFlightBycode"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#63a19699-ebd9-4ec8-a467-acab291dc317"/>
+</types:mule>

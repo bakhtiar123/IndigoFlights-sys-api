@@ -1,0 +1,10 @@
+http:
+  host: "localhost"
+  port: "8081"
+ 
+db:
+  host: "![Cu3sX1YdzS3jn0taXNpmElSM/p93+KrWXJ1lSDPdU7vVOHQjBqGHGMIKFEQs23nSRML8NPMYQLCXhObmmVF7MQ==]"
+  port: "3306"
+  username: "Indigo"
+  password: "![Ftf/Zah4f4dP+uIedyfHAw==]"
+  database: "![5+2TYuy4TxIn66/nfSGVpRJxg2ajZApJ52XR9nXeNGs=]"

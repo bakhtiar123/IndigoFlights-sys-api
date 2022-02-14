@@ -1,0 +1,10 @@
+{
+	"code": "ER38sd",
+	"price": 400.00,
+	"departureDate": "2016/03/20",
+	"origin": "Mumbai",
+	"destination": "Dubai",
+	"emptySeats": 0,
+	"planetype": "Boeing 737",
+	"planetotalSeats": 150
+}

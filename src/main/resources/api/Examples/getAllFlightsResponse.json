@@ -1,0 +1,21 @@
+[{
+	"ID": 1,
+	"code": "ER38sd",
+	"price": 400.00,
+	"departureDate": "2016/03/20",
+	"origin": "Mumbai",
+	"destination": "Dubai",
+	"emptySeats": 0,
+	"planetype": "Boeing 737",
+	"planetotalSeats": 150
+}, {
+	"ID": 2,
+	"code": "ER45if",
+	"price": 345.99,
+	"departureDate": "2016/02/11",
+	"origin": "Pune",
+	"destination": "London",
+	"emptySeats": 52,
+	"planetype": "Boeing 777",
+	"planetotalSeats": 300
+}]

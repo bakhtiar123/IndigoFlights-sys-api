@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd 
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+<http:listener-config name="indigo_flights_api-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <apikit:config name="indigo_flights_api-config" api="indigo_flights_api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="e9864141-0bb4-4986-ae70-01c9a7bd4350" >
+		<db:my-sql-connection host="${secure::db.host}" port="3306" user="Indigo" password="${secure::db.password}" database="${secure::db.database}" />
+	</db:config>
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="0d3730e1-011e-4e76-b346-2f50bd1d074a" file="config.yaml" key="IndigoSys1234567" />
+	<configuration doc:name="Configuration" doc:id="474611de-9694-48cd-9d42-151f046cd3e3" defaultErrorHandler-ref="globalError_Handler" />
+	<error-handler name="globalError_Handler" doc:id="055ddf4e-cbe0-448b-90b2-daebbaf33890" >
+		<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="dfa771a3-6ee7-422f-9701-a876b38af167" type="INDIGOFLIGHTS:NO_SEATS_AVAILABLE">
+			<ee:transform doc:name="Transform Message" doc:id="e0d5f0ca-46c1-465a-b40a-cf7c2ba960ea" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	Message: "No seats available for booking on flight"
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</on-error-continue>
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="84473a11-cc26-4a7e-a075-68a3a6fa4f62" type="INDIGOFLIGHTS:NO_BOOKING">
+			<ee:transform doc:name="Transform Message" doc:id="77ad9e33-3da7-4d64-8989-174ab277bc19" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	Message: "No bookings with Provided CustomerName and FlightCode"
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</on-error-propagate>
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="36016711-9a75-4a84-b371-10d0ee33bc08" type="VALIDATION:NULL">
+			<ee:transform doc:name="Transform Message" doc:id="17bf2a70-a92d-46da-bc17-d073d091d5c0" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	Message: "Enter a Valid Flight code"
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</on-error-propagate>
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="4e118df3-4f77-46b0-bc99-ab8533ffe56e" type="VALIDATION:MISMATCH">
+			<ee:transform doc:name="Transform Message" doc:id="bf48b00f-4f2f-4dab-9fdc-0cef498bffd1">
+				<ee:message>
+					<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	Message: "Enter valid Departure date",
+	Reason: error.description
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</on-error-propagate>
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="ed925414-7c38-446d-bcf2-08af20a067e4" type="DB:CONNECTIVITY">
+			<ee:transform doc:name="Transform Message" doc:id="db58457d-227f-4645-afe4-b396e1104bb9">
+				<ee:message>
+					<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	Message: "Db Connectivity Error",
+	Type: error.errorType.identifier as String
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</on-error-propagate>
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="f638dedb-4abc-4d74-a0fe-83ee307f590c" type="VALIDATION:EMPTY_COLLECTION">
+			<ee:transform doc:name="Transform Message" doc:id="dc7647ba-9944-4e85-a2ae-c724f4b46295" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	Message: "Invalid Destination and Origin"
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</on-error-propagate>
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="d520c08d-1b2f-433c-b5f8-98cd05b7d29d" type="EXPRESSION">
+			<ee:transform doc:name="Transform Message" doc:id="652769bd-95ed-4ca9-b9f9-14e6b3ad2cd3">
+				<ee:message>
+					<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: error.description
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</on-error-propagate>
+	</error-handler>	
+
+</mule>

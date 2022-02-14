@@ -1,0 +1,54 @@
+#%RAML 1.0
+title: Bookmyholiday-IndigoFlights-sys-api
+description: This is a Indigo Flights System API
+
+uses:
+  FlightResource: Library/FlightsLibrary.raml
+
+types:
+  getflightsData: !include DataType/getAllFlightsDataType.raml 
+
+/Indigoflights:
+  type:
+    FlightResource.flightCollection:
+      getResponse: !include Examples/getAllFlightsResponse.json
+      getBodyType: getflightsData[]
+  get:
+    description: Fetch all the flights. Filter on the basis of Destination or origin.
+    queryParameters:
+      destination:
+        type: string
+        required: true
+        example: "Dubai"
+      origin:
+        type: string
+        required: true
+        example: "Mumbai"
+    
+  /{code}:
+    type:
+      FlightResource.flightCollection:
+        getResponse: !include Examples/getFlightsByCodeResponse.json
+        getBodyType: !include DataType/getFlightByCodeDataType.raml
+        postResponse: !include Examples/ByFlightCode.json
+        postBodyType: !include DataType/FlightPostdataType.raml
+        deleteRequest: !include Examples/deleteRequestBody.json
+        deleteBodyType: !include DataType/DeleteFlightdataType.raml
+        
+    get:
+      description: Fetch flight details on the basis of Flight Code
+    
+    post:
+      description: Book a flight on basis of Flight Code
+    
+    delete:
+      description: Cancel a booked flight on basis of Flight Code
+            
+
+                 
+    
+      
+      
+              
+
+      

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+	<flow name="getFlights" doc:id="789f71f3-5766-4f4f-80d8-16ffb026f095" >
+		<db:select doc:name="getFlights" doc:id="c90d5bdb-31f7-407c-860a-2882109c36b8" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from flights where destination = :d and origin = :o ;]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	d: attributes.queryParams.destination,
+	o: attributes.queryParams.origin
+}]]]></db:input-parameters>
+		</db:select>
+		<validation:is-not-empty-collection doc:name="Is not empty collection" doc:id="edff0871-6874-44f1-a5fe-0bdbd0d3e0c7" />
+		<ee:transform doc:name="Flight Payload" doc:id="63a19699-ebd9-4ec8-a467-acab291dc317" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="getFlightBycode" doc:id="2bc3125a-d79a-4b55-941d-5ab11beeb836" >
+		<db:select doc:name="getFlightBycode" doc:id="1ee29fe5-7ef3-4f2c-bc8c-aa52926c4d8b" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from flights where code=:code;]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	code: attributes.uriParams.code
+}]]]></db:input-parameters>
+		</db:select>
+		<validation:is-not-null doc:name="Invalid Flight code" doc:id="9019c126-b15b-44cd-a141-bed5707b38e2" value="#[payload[0].code]"/>
+		<ee:transform doc:name="FlightByCode Payload" doc:id="1c5ad320-5910-4428-8d34-890114dd5df9">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	code: payload[0].code,
+	price: payload[0].price,
+	departureDate: payload[0].departureDate default "",
+	origin: payload[0].origin default "",
+	destination: payload[0].destination default "",
+	emptySeats: payload[0].emptyseats default 0,
+	planetype: payload[0].planetype default "",
+	planetotalSeats: payload[0].planetotalSeats default 0
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="postFlightBycode" doc:id="40e8c6fa-dab9-4887-8b82-c2ea5ccfeed0" >
+		<set-variable value="#[attributes.uriParams.'code']" doc:name="Setting Flight Code" doc:id="35283218-e45c-46ad-9baf-02c84d686ded" variableName="code"/>
+		<set-variable value="#[payload]" doc:name="Actual Payload as target" doc:id="59340863-163d-47e4-8913-a65f3732c423" variableName="OrigPayload"/>
+		<flow-ref doc:name="getFlightBycode" doc:id="d7cb38d3-3aa5-491b-b58f-e4d6f7703bad" name="getFlightBycode"/>
+		<choice doc:name="Choice" doc:id="9956d95c-c81b-4123-959d-26cd53d087c3" >
+			<when expression="#[payload.emptySeats != 0]">
+				<db:insert doc:name="Insert Customer-Flight in DB" doc:id="d8ee7da0-2b61-4002-bf0d-5f8cb08f6649" config-ref="Database_Config">
+			<db:sql><![CDATA[Insert into bookings(customername,code,price,departureDate,origin,destination,planetype) values( :customername,:code,:price,:departureDate,:origin,:destination,:planetype);]]></db:sql>
+					<db:input-parameters><![CDATA[#[output application/java
+---
+{
+	customername: vars.OrigPayload.CustomerName,
+	code: vars.code,
+	planetype: vars.OrigPayload.planetype,
+	price: vars.OrigPayload.price,
+	origin: vars.OrigPayload.origin,
+	destination: vars.OrigPayload.destination,
+	departureDate: vars.OrigPayload.departureDate
+}]]]></db:input-parameters>
+		</db:insert>
+				<ee:transform doc:name="Flight Booked" doc:id="7035a97f-baf8-4c40-af69-64d5555c06e2">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	Message:"Your Flight has been booked successfully" 
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</when>
+			<otherwise>
+				<raise-error doc:name="Raise error" doc:id="0c558ce9-f93b-429b-b63d-af28889bc7fb" type="INDIGOFLIGHTS:NO_SEATS_AVAILABLE" description="No seats available for booking on flight"/>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="deleteFlightBycode" doc:id="ce979f18-c962-4017-b25d-dc74e5741bbb" >
+		<db:delete doc:name="Delete by CustomerName and FlightCode" doc:id="0edb184b-a0c5-40a0-8c84-a4db75c7fc9d" config-ref="Database_Config">
+			<db:sql ><![CDATA[delete from bookings where code=:code and customername=:customername;]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	code: attributes.uriParams.code,
+	customername: payload.CustomerName
+}]]]></db:input-parameters>
+		</db:delete>
+		<choice doc:name="Choice" doc:id="a90c9e32-6f5e-497a-a291-2d47bd202775" >
+			<when expression="#[payload == 1]">
+				<ee:transform doc:name="Flight cancelled successfully" doc:id="32e84229-0c3f-45dc-b664-a380054d92d6">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	Message: "Your Flight has been cancelled successfully"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</when>
+			<otherwise >
+				<raise-error doc:name="Raise error" doc:id="c078542a-cd7c-4b24-a39e-2814fddb1ad8" type="INDIGOFLIGHTS:NO_BOOKING" description="No bookings with Provided CustomerName and FlightCode"/>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>
